@@ -3,6 +3,9 @@ import SwiftUI
 struct ImageCardView: View {
     @Bindable var item: ImageItem
     @Environment(AppViewModel.self) private var vm
+    @State private var resultHeight: CGFloat = 200
+    private let minResultHeight: CGFloat = 60
+    private let maxResultHeight: CGFloat = 800
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -110,13 +113,48 @@ struct ImageCardView: View {
     // MARK: - Result
 
     private var resultView: some View {
-        ScrollView {
-            Text(item.result)
-                .font(.system(size: 15))   // callout(12) → 15
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 2)
+        VStack(spacing: 0) {
+            ScrollView {
+                Text(item.result)
+                    .font(.system(size: 15))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+            }
+            .frame(height: resultHeight)
+            .background(Color(.textBackgroundColor).opacity(0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+            )
+
+            // リサイズハンドル
+            resizeHandle
         }
-        .frame(maxHeight: 200)
+    }
+
+    private var resizeHandle: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<3, id: \.self) { _ in
+                Capsule()
+                    .fill(Color.secondary.opacity(0.4))
+                    .frame(width: 20, height: 3)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 14)
+        .contentShape(Rectangle())
+        .onHover { inside in
+            if inside { NSCursor.resizeUpDown.push() }
+            else      { NSCursor.pop() }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 2)
+                .onChanged { value in
+                    let newHeight = resultHeight + value.translation.height
+                    resultHeight = min(max(newHeight, minResultHeight), maxResultHeight)
+                }
+        )
     }
 }
