@@ -39,8 +39,12 @@ struct ImageCardView: View {
             .clipped()
 
             if item.isAnalyzing {
-                Color.black.opacity(0.45).frame(height: 180)
-                ProgressView().tint(.white).scaleEffect(1.3).frame(height: 180)
+                Color.black.opacity(0.45)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ProgressView()
+                    .tint(.white)
+                    .scaleEffect(1.5)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
             Button { vm.removeImage(item) } label: {
