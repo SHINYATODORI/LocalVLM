@@ -20,11 +20,26 @@ final class AppViewModel {
 
     // MARK: - Model management
 
+    /// 視覚言語モデル（VL/vision）だけに絞ったリスト
+    var vlModels: [String] {
+        let keywords = ["vl", "vision", "llava", "moondream", "minicpm-v", "cogvlm", "internvl"]
+        return availableModels.filter { model in
+            let lower = model.lowercased()
+            return keywords.contains(where: { lower.contains($0) })
+        }
+    }
+
     func loadModels() async {
         let models = await OllamaService.shared.fetchModels()
         availableModels = models
-        if !models.isEmpty && !models.contains(selectedModel) {
-            selectedModel = models.first ?? selectedModel
+        // VLモデルがあればその中から、なければ全体から選ぶ
+        let candidates = models.filter { m in
+            let keywords = ["vl", "vision", "llava", "moondream", "minicpm-v", "cogvlm", "internvl"]
+            return keywords.contains(where: { m.lowercased().contains($0) })
+        }
+        let pool = candidates.isEmpty ? models : candidates
+        if !pool.isEmpty && !pool.contains(selectedModel) {
+            selectedModel = pool.first ?? selectedModel
         }
     }
 

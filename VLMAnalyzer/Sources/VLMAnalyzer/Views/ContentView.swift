@@ -34,30 +34,66 @@ struct ContentView: View {
         .onDisappear { memMonitor.stop() }
     }
 
-    // MARK: - Model picker
+    // MARK: - Model picker (segmented pills)
 
     private var modelPicker: some View {
         @Bindable var vm = vm
-        return HStack(spacing: 4) {
-            Image(systemName: "cpu")
+        let models = vm.vlModels.isEmpty ? vm.availableModels : vm.vlModels
+        return HStack(spacing: 2) {
+            Image(systemName: "cpu.fill")
                 .foregroundStyle(.secondary)
-                .font(.system(size: 12))
-            if vm.availableModels.isEmpty {
+                .font(.system(size: 11))
+                .padding(.trailing, 4)
+
+            if models.isEmpty {
                 Text(vm.selectedModel)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.secondary)
             } else {
-                Picker("", selection: $vm.selectedModel) {
-                    ForEach(vm.availableModels, id: \.self) { model in
-                        Text(model).tag(model)
+                HStack(spacing: 1) {
+                    ForEach(models, id: \.self) { model in
+                        let isSelected = vm.selectedModel == model
+                        Button {
+                            vm.selectedModel = model
+                        } label: {
+                            Text(shortName(model))
+                                .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
+                                .foregroundStyle(isSelected ? .white : .primary)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .fill(isSelected ? Color.accentColor : Color.clear)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .help(model)
                     }
                 }
-                .pickerStyle(.menu)
-                .font(.system(size: 12))
-                .frame(maxWidth: 180)
-                .help("使用するモデルを選択")
+                .padding(2)
+                .background(
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(Color(.separatorColor).opacity(0.15))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 7)
+                                .stroke(Color(.separatorColor).opacity(0.3), lineWidth: 1)
+                        )
+                )
             }
         }
+    }
+
+    /// "qwen3-vl:8b" → "Qwen3-VL 8B" のような短い表示名
+    private func shortName(_ model: String) -> String {
+        let base = model.components(separatedBy: ":").first ?? model
+        let tag  = model.components(separatedBy: ":").last ?? ""
+        // qwen2.5vl → Q2.5VL, qwen3-vl → Q3-VL etc.
+        let pretty = base
+            .replacingOccurrences(of: "qwen3-vl",  with: "Q3-VL",  options: .caseInsensitive)
+            .replacingOccurrences(of: "qwen2.5vl",  with: "Q2.5-VL", options: .caseInsensitive)
+            .replacingOccurrences(of: "qwen3",      with: "Q3",      options: .caseInsensitive)
+            .replacingOccurrences(of: "llava",       with: "LLaVA",   options: .caseInsensitive)
+        return tag.isEmpty ? pretty : "\(pretty) \(tag.uppercased())"
     }
 
     // MARK: - Common prompt bar (enlarged)
