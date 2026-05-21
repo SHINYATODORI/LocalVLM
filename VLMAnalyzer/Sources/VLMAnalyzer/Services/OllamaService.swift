@@ -68,6 +68,28 @@ actor OllamaService {
         currentModel = model
     }
 
+    /// 指定モデルをollamaメモリから即時アンロード（keep_alive=0）
+    func unloadModel(_ model: String) async {
+        struct UnloadRequest: Encodable {
+            let model: String
+            let keep_alive: Int
+        }
+        guard let body = try? JSONEncoder().encode(UnloadRequest(model: model, keep_alive: 0)) else { return }
+        var req = URLRequest(url: baseURL.appendingPathComponent("api/generate"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = body
+        _ = try? await session.data(for: req)
+    }
+
+    /// ollamaサーバープロセスを終了
+    func stopServer() {
+        let task = Process()
+        task.launchPath = "/usr/bin/pkill"
+        task.arguments  = ["-x", "ollama"]
+        try? task.run()
+    }
+
     func fetchModels() async -> [String] {
         guard let url = URL(string: "http://localhost:11434/api/tags") else { return [] }
         guard let (data, _) = try? await session.data(from: url),

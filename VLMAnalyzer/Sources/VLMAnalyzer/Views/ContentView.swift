@@ -37,13 +37,16 @@ struct ContentView: View {
     // MARK: - Model picker (segmented pills)
 
     private var modelPicker: some View {
-        @Bindable var vm = vm
         let models = vm.vlModels.isEmpty ? vm.availableModels : vm.vlModels
+        let locked  = vm.isAnyAnalyzing || vm.isReleasingModel
         return HStack(spacing: 2) {
-            Image(systemName: "cpu.fill")
-                .foregroundStyle(.secondary)
-                .font(.system(size: 11))
-                .padding(.trailing, 4)
+            if vm.isReleasingModel {
+                ProgressView().scaleEffect(0.6).frame(width: 14)
+            } else {
+                Image(systemName: "cpu.fill")
+                    .foregroundStyle(.secondary)
+                    .font(.system(size: 11))
+            }
 
             if models.isEmpty {
                 Text(vm.selectedModel)
@@ -54,11 +57,15 @@ struct ContentView: View {
                     ForEach(models, id: \.self) { model in
                         let isSelected = vm.selectedModel == model
                         Button {
-                            vm.selectedModel = model
+                            Task { await vm.switchModel(to: model) }
                         } label: {
                             Text(shortName(model))
                                 .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
-                                .foregroundStyle(isSelected ? .white : .primary)
+                                .foregroundStyle(
+                                    locked && !isSelected
+                                        ? Color.secondary.opacity(0.4)
+                                        : isSelected ? .white : .primary
+                                )
                                 .padding(.horizontal, 9)
                                 .padding(.vertical, 4)
                                 .background(
@@ -67,7 +74,8 @@ struct ContentView: View {
                                 )
                         }
                         .buttonStyle(.plain)
-                        .help(model)
+                        .disabled(locked || isSelected)
+                        .help(locked ? "解析中はモデルを切り替えられません" : model)
                     }
                 }
                 .padding(2)
@@ -76,9 +84,10 @@ struct ContentView: View {
                         .fill(Color(.separatorColor).opacity(0.15))
                         .overlay(
                             RoundedRectangle(cornerRadius: 7)
-                                .stroke(Color(.separatorColor).opacity(0.3), lineWidth: 1)
+                                .stroke(Color(.separatorColor).opacity(locked ? 0.1 : 0.3), lineWidth: 1)
                         )
                 )
+                .opacity(locked ? 0.6 : 1.0)
             }
         }
     }
@@ -238,7 +247,7 @@ struct ContentView: View {
                 Label("全件解析", systemImage: "bolt.fill")
             }
             .buttonStyle(.borderedProminent)
-            .disabled(vm.images.isEmpty || vm.isAnalyzingAll)
+            .disabled(vm.images.isEmpty || vm.isAnyAnalyzing)
             .help("全画像を同時に解析")
 
             Button { showReport = true } label: {
@@ -246,6 +255,15 @@ struct ContentView: View {
             }
             .disabled(vm.images.isEmpty)
             .help("HTMLレポートを生成（画像付き）")
+
+            Button {
+                vm.stopOllama()
+            } label: {
+                Label("ollama終了", systemImage: "power.circle")
+            }
+            .foregroundStyle(.red)
+            .help("ollamaサーバーを終了してメモリを解放")
+            .disabled(vm.isAnyAnalyzing)
         }
     }
 

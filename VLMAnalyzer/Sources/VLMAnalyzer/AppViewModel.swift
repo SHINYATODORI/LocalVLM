@@ -12,10 +12,12 @@ final class AppViewModel {
     var analyzedCount: Int = 0
     var analyzeTotal: Int = 0
     var availableModels: [String] = []
-    var selectedModel: String = "qwen3-vl:8b" {
-        didSet {
-            Task { await OllamaService.shared.setModel(selectedModel) }
-        }
+    var selectedModel: String = "qwen3-vl:8b"
+    var isReleasingModel: Bool = false   // モデルアンロード中フラグ
+
+    /// 解析中かどうか（全件 or 個別どちらかでも）
+    var isAnyAnalyzing: Bool {
+        isAnalyzingAll || images.contains(where: { $0.isAnalyzing })
     }
 
     // MARK: - Model management
@@ -32,15 +34,32 @@ final class AppViewModel {
     func loadModels() async {
         let models = await OllamaService.shared.fetchModels()
         availableModels = models
-        // VLモデルがあればその中から、なければ全体から選ぶ
         let candidates = models.filter { m in
             let keywords = ["vl", "vision", "llava", "moondream", "minicpm-v", "cogvlm", "internvl"]
             return keywords.contains(where: { m.lowercased().contains($0) })
         }
         let pool = candidates.isEmpty ? models : candidates
         if !pool.isEmpty && !pool.contains(selectedModel) {
-            selectedModel = pool.first ?? selectedModel
+            await switchModel(to: pool.first ?? selectedModel)
         }
+    }
+
+    /// モデル切替：旧モデルをアンロードしてから新モデルをセット
+    func switchModel(to newModel: String) async {
+        guard newModel != selectedModel else { return }
+        guard !isAnyAnalyzing else { return }
+
+        isReleasingModel = true
+        let old = selectedModel
+        await OllamaService.shared.unloadModel(old)
+        await OllamaService.shared.setModel(newModel)
+        selectedModel = newModel
+        isReleasingModel = false
+    }
+
+    /// ollamaサーバーを停止
+    func stopOllama() {
+        Task { await OllamaService.shared.stopServer() }
     }
 
     // MARK: - Image management
