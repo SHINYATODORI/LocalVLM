@@ -23,7 +23,15 @@
       "Bash(screencapture -x /tmp/vlm_app3.png)",
       "Bash(osascript -e ' *)",
       "Bash(screencapture -x /tmp/vlm_app4.png)",
-      "Bash(screencapture -x /tmp/vlm_full.png)"
+      "Bash(screencapture -x /tmp/vlm_full.png)",
+      "Bash(vm_stat)",
+      "Bash(awk ' *)",
+      "Bash(curl -s http://localhost:11434/api/tags)",
+      "Bash(curl -s \"https://ollama.com/api/search?q=qwen+vl&limit=20\")",
+      "Bash(curl -s \"https://ollama.com/search?c=vision\")",
+      "WebSearch",
+      "Bash(curl -s \"https://ollama.com/api/show\" -d '{\"name\":\"qwen3-vl:32b\"}')",
+      "Bash(curl -s \"https://registry.ollama.ai/v2/library/qwen3-vl/manifests/32b\")"
     ]
   }
 }

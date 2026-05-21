@@ -47,7 +47,7 @@ actor OllamaService {
     static let shared = OllamaService()
 
     private let baseURL = URL(string: "http://localhost:11434")!
-    private let model = "qwen2.5vl:32b"
+    private let model = "qwen3-vl:32b"
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 300
