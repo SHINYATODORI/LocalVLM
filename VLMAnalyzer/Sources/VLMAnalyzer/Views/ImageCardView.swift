@@ -35,20 +35,12 @@ struct ImageCardView: View {
             .frame(height: 180)
             .clipped()
 
-            // Analyzing overlay
             if item.isAnalyzing {
-                Color.black.opacity(0.45)
-                    .frame(height: 180)
-                ProgressView()
-                    .tint(.white)
-                    .scaleEffect(1.3)
-                    .frame(height: 180)
+                Color.black.opacity(0.45).frame(height: 180)
+                ProgressView().tint(.white).scaleEffect(1.3).frame(height: 180)
             }
 
-            // Delete button (always on top)
-            Button {
-                vm.removeImage(item)
-            } label: {
+            Button { vm.removeImage(item) } label: {
                 Image(systemName: "xmark.circle.fill")
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(.white, .black.opacity(0.55))
@@ -60,43 +52,55 @@ struct ImageCardView: View {
         .frame(height: 180)
     }
 
-    // MARK: - Content
+    // MARK: - Content (+2pt fonts throughout)
 
     private var contentArea: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // File name
             Text(item.fileName)
-                .font(.caption)
+                .font(.system(size: 13))   // caption(11) → 13
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
 
-            // Individual prompt
-            TextField("個別プロンプト（オプション）", text: $item.individualPrompt, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .font(.callout)
-                .lineLimit(2...5)
+            TextEditor(text: $item.individualPrompt)
+                .font(.system(size: 14))   // callout(12) → 14
+                .frame(minHeight: 52, maxHeight: 100)
+                .scrollContentBackground(.hidden)
+                .background(Color(.textBackgroundColor))
+                .cornerRadius(6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                )
+                .overlay(alignment: .topLeading) {
+                    if item.individualPrompt.isEmpty {
+                        Text("個別プロンプト（オプション）")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.tertiary)
+                            .padding(.top, 5)
+                            .padding(.leading, 5)
+                            .allowsHitTesting(false)
+                    }
+                }
 
-            // Analyze button
             Button {
                 Task { await vm.analyzeImage(item) }
             } label: {
                 Label(item.isAnalyzing ? "解析中…" : "解析", systemImage: "play.fill")
+                    .font(.system(size: 14))   // +2pt
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .disabled(item.isAnalyzing)
 
-            // Result
             if !item.result.isEmpty {
                 Divider()
                 resultView
             }
 
-            // Error
             if let error = item.error {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
+                    .font(.system(size: 13))   // caption(11) → 13
                     .foregroundStyle(.red)
             }
         }
@@ -108,11 +112,11 @@ struct ImageCardView: View {
     private var resultView: some View {
         ScrollView {
             Text(item.result)
-                .font(.callout)
+                .font(.system(size: 15))   // callout(12) → 15
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 2)
         }
-        .frame(maxHeight: 180)
+        .frame(maxHeight: 200)
     }
 }

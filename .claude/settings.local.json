@@ -13,7 +13,11 @@
       "Bash(gh auth *)",
       "Bash(gh api *)",
       "Bash(gh repo *)",
-      "Bash(swift build *)"
+      "Bash(swift build *)",
+      "Bash(ls /Users/shinyatodori/Documents/RYO-SYU-SYO/ 2>/dev/null)",
+      "Bash(chmod +x build_app.sh)",
+      "Bash(bash build_app.sh)",
+      "Bash(open \"VLM Analyzer.app\")"
     ]
   }
 }

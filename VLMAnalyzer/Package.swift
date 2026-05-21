@@ -7,7 +7,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "VLMAnalyzer",
-            path: "Sources/VLMAnalyzer"
+            path: "Sources/VLMAnalyzer",
+            linkerSettings: [.linkedFramework("WebKit")]
         )
     ]
 )

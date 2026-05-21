@@ -3,42 +3,64 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Environment(AppViewModel.self) private var vm
-    @State private var showReport = false
-    @State private var isDragOver = false
+    @State private var memMonitor = MemoryMonitor()
+    @State private var showReport  = false
+    @State private var isDragOver  = false
 
-    private let columns = [GridItem(.adaptive(minimum: 280, maximum: 380), spacing: 16)]
+    private let columns = [GridItem(.adaptive(minimum: 290, maximum: 400), spacing: 16)]
 
     var body: some View {
         @Bindable var vm = vm
 
         VStack(spacing: 0) {
-            commonPromptBar(vm: _vm)
+            commonPromptBar(binding: $vm.commonPrompt)
             Divider()
             if vm.images.isEmpty {
                 dropZone
             } else {
                 imageGrid
             }
+            Divider()
+            statusBar
         }
         .toolbar { toolbarContent }
         .sheet(isPresented: $showReport) {
-            ReportView(content: vm.generateReport())
+            ReportView(htmlContent: vm.generateHTMLReport())
         }
+        .onAppear  { memMonitor.start() }
+        .onDisappear { memMonitor.stop() }
     }
 
-    // MARK: - Common prompt bar
+    // MARK: - Common prompt bar (enlarged)
 
-    @ViewBuilder
-    private func commonPromptBar(vm: Bindable<AppViewModel>) -> some View {
-        HStack(spacing: 10) {
+    private func commonPromptBar(binding: Binding<String>) -> some View {
+        HStack(alignment: .top, spacing: 10) {
             Label("共通プロンプト", systemImage: "text.bubble.fill")
-                .font(.subheadline.weight(.medium))
+                .font(.system(size: 13).weight(.medium))
                 .foregroundStyle(.secondary)
                 .fixedSize()
+                .padding(.top, 6)
 
-            TextField("全画像に適用されるプロンプトを入力…", text: vm.commonPrompt, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .lineLimit(1...4)
+            TextEditor(text: binding)
+                .font(.system(size: 14))
+                .frame(minHeight: 64, maxHeight: 120)
+                .scrollContentBackground(.hidden)
+                .background(Color(.textBackgroundColor))
+                .cornerRadius(7)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7)
+                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                )
+                .overlay(alignment: .topLeading) {
+                    if binding.wrappedValue.isEmpty {
+                        Text("全画像に適用されるプロンプトを入力…")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.tertiary)
+                            .padding(.top, 5)
+                            .padding(.leading, 5)
+                            .allowsHitTesting(false)
+                    }
+                }
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
@@ -82,17 +104,47 @@ struct ContentView: View {
                 Image(systemName: "photo.on.rectangle.angled")
                     .font(.system(size: 56))
                     .foregroundStyle(.tertiary)
-
                 Text("画像をここにドロップ")
-                    .font(.title3)
+                    .font(.system(size: 16))
                     .foregroundStyle(.secondary)
-
                 Button("ファイルを選択", action: openFilePicker)
                     .buttonStyle(.borderedProminent)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onDrop(of: [.fileURL], isTargeted: $isDragOver, perform: handleDrop)
+    }
+
+    // MARK: - Bottom status bar
+
+    private var statusBar: some View {
+        HStack(spacing: 0) {
+            // Progress (only while analyzing)
+            if vm.isAnalyzingAll {
+                HStack(spacing: 10) {
+                    ProgressView(
+                        value: Double(vm.analyzedCount),
+                        total: Double(max(vm.analyzeTotal, 1))
+                    )
+                    .frame(width: 130)
+                    .tint(.accentColor)
+
+                    Text("\(vm.analyzedCount) / \(vm.analyzeTotal) 解析中")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.leading, 14)
+                .padding(.trailing, 8)
+
+                Divider().frame(height: 24)
+            }
+
+            Spacer()
+
+            MemoryGraphView(monitor: memMonitor)
+        }
+        .frame(height: 58)
+        .background(.bar)
     }
 
     // MARK: - Toolbar
@@ -108,9 +160,7 @@ struct ContentView: View {
 
         ToolbarItemGroup(placement: .primaryAction) {
             if vm.isAnalyzingAll {
-                ProgressView()
-                    .scaleEffect(0.75)
-                    .padding(.trailing, 4)
+                ProgressView().scaleEffect(0.75).padding(.trailing, 4)
             }
 
             Button {
@@ -122,13 +172,11 @@ struct ContentView: View {
             .disabled(vm.images.isEmpty || vm.isAnalyzingAll)
             .help("全画像を同時に解析")
 
-            Button {
-                showReport = true
-            } label: {
-                Label("レポート生成", systemImage: "doc.plaintext")
+            Button { showReport = true } label: {
+                Label("レポート生成", systemImage: "doc.richtext")
             }
             .disabled(vm.images.isEmpty)
-            .help("解析結果のレポートを生成")
+            .help("HTMLレポートを生成（画像付き）")
         }
     }
 
@@ -137,12 +185,10 @@ struct ContentView: View {
     private func openFilePicker() {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
-        panel.canChooseDirectories = false
-        panel.allowedContentTypes = [.image, .jpeg, .png, .heic, .gif, .bmp, .tiff]
+        panel.canChooseDirectories   = false
+        panel.allowedContentTypes    = [.image, .jpeg, .png, .heic, .gif, .bmp, .tiff]
         panel.message = "解析する画像を選択してください"
-        if panel.runModal() == .OK {
-            vm.addImages(urls: panel.urls)
-        }
+        if panel.runModal() == .OK { vm.addImages(urls: panel.urls) }
     }
 
     // MARK: - Drag & drop
