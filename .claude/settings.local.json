@@ -31,7 +31,12 @@
       "Bash(curl -s \"https://ollama.com/search?c=vision\")",
       "WebSearch",
       "Bash(curl -s \"https://ollama.com/api/show\" -d '{\"name\":\"qwen3-vl:32b\"}')",
-      "Bash(curl -s \"https://registry.ollama.ai/v2/library/qwen3-vl/manifests/32b\")"
+      "Bash(curl -s \"https://registry.ollama.ai/v2/library/qwen3-vl/manifests/32b\")",
+      "Bash(sort -rk4)",
+      "Bash(awk '{printf \"%-30s %5s%%\\\\n\", $11, $4}')",
+      "Bash(awk '{printf \"%.0f MB  %s\\\\n\", $6/1024, $11}')",
+      "Bash(awk '{printf \"%5.0f MB  %s\\\\n\", $1/1024, $2}')",
+      "Bash(top -l 1)"
     ]
   }
 }

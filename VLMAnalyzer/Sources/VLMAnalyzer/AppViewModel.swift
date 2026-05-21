@@ -199,7 +199,7 @@ final class AppViewModel {
           <h1>📊 VLM Analysis Report</h1>
           <div class="meta">
             生成日時：\(dateStr)<br>
-            使用モデル：qwen3-vl:32b (ollama / ローカル)<br>
+            使用モデル：qwen3-vl:8b (ollama / ローカル)<br>
             共通プロンプト：\(commonPrompt.isEmpty ? "（なし）" : htmlEscape(commonPrompt))
           </div>
         </div>
