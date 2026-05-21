@@ -36,7 +36,25 @@
       "Bash(awk '{printf \"%-30s %5s%%\\\\n\", $11, $4}')",
       "Bash(awk '{printf \"%.0f MB  %s\\\\n\", $6/1024, $11}')",
       "Bash(awk '{printf \"%5.0f MB  %s\\\\n\", $1/1024, $2}')",
-      "Bash(top -l 1)"
+      "Bash(top -l 1)",
+      "Read(//Users/shinyatodori/.ollama/**)",
+      "Bash(launchctl setenv *)",
+      "Bash(mkdir -p ~/Library/LaunchAgents)",
+      "Bash(cat)",
+      "Bash(cp /tmp/ollama_env.plist ~/Library/LaunchAgents/com.ollama.environment.plist)",
+      "Bash(launchctl load *)",
+      "Bash(curl -s http://localhost:11434/api/ps)",
+      "Bash(pkill -f \"ollama\")",
+      "Bash(open -a Ollama)",
+      "Bash(ollama serve *)",
+      "Bash(curl -s http://localhost:11434/api/version)",
+      "Bash(# Ollama.appのLaunchAgent plistを確認 *)",
+      "Bash(# macOS環境変数をplistで設定する標準的な方法 *)",
+      "Bash(pkill -f \"ollama serve\")",
+      "Bash(pkill -f \"Ollama.app\")",
+      "Bash(launchctl unload *)",
+      "Bash(pkill -f \"VLM Analyzer\")",
+      "Bash(open \"/Users/shinyatodori/Documents/LocalVLM/VLMAnalyzer/VLM Analyzer.app\")"
     ]
   }
 }

@@ -41,13 +41,22 @@ enum OllamaError: LocalizedError {
     }
 }
 
+// MARK: - Models list response
+
+private struct TagsResponse: Decodable {
+    let models: [ModelEntry]
+    struct ModelEntry: Decodable {
+        let name: String
+    }
+}
+
 // MARK: - Service
 
 actor OllamaService {
     static let shared = OllamaService()
 
     private let baseURL = URL(string: "http://localhost:11434")!
-    private let model = "qwen3-vl:8b"
+    var currentModel: String = "qwen3-vl:8b"
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 300
@@ -55,11 +64,23 @@ actor OllamaService {
         return URLSession(configuration: config)
     }()
 
+    func setModel(_ model: String) {
+        currentModel = model
+    }
+
+    func fetchModels() async -> [String] {
+        guard let url = URL(string: "http://localhost:11434/api/tags") else { return [] }
+        guard let (data, _) = try? await session.data(from: url),
+              let decoded = try? JSONDecoder().decode(TagsResponse.self, from: data)
+        else { return [] }
+        return decoded.models.map { $0.name }.sorted()
+    }
+
     func analyze(imageURL: URL, prompt: String) async throws -> String {
         let base64 = try imageToBase64(url: imageURL)
 
         let body = ChatRequest(
-            model: model,
+            model: currentModel,
             messages: [.init(role: "user", content: prompt, images: [base64])],
             stream: false
         )

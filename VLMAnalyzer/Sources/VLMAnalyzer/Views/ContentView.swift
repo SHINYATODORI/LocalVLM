@@ -27,8 +27,37 @@ struct ContentView: View {
         .sheet(isPresented: $showReport) {
             ReportView(htmlContent: vm.generateHTMLReport())
         }
-        .onAppear  { memMonitor.start() }
+        .onAppear {
+            memMonitor.start()
+            Task { await vm.loadModels() }
+        }
         .onDisappear { memMonitor.stop() }
+    }
+
+    // MARK: - Model picker
+
+    private var modelPicker: some View {
+        @Bindable var vm = vm
+        return HStack(spacing: 4) {
+            Image(systemName: "cpu")
+                .foregroundStyle(.secondary)
+                .font(.system(size: 12))
+            if vm.availableModels.isEmpty {
+                Text(vm.selectedModel)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            } else {
+                Picker("", selection: $vm.selectedModel) {
+                    ForEach(vm.availableModels, id: \.self) { model in
+                        Text(model).tag(model)
+                    }
+                }
+                .pickerStyle(.menu)
+                .font(.system(size: 12))
+                .frame(maxWidth: 180)
+                .help("使用するモデルを選択")
+            }
+        }
     }
 
     // MARK: - Common prompt bar (enlarged)
@@ -156,6 +185,10 @@ struct ContentView: View {
                 Label("画像を追加", systemImage: "plus.circle.fill")
             }
             .help("画像ファイルを追加")
+        }
+
+        ToolbarItem(placement: .navigation) {
+            modelPicker
         }
 
         ToolbarItemGroup(placement: .primaryAction) {
