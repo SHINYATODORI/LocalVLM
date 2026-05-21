@@ -28,17 +28,37 @@ ollamaを使ったローカルVLM画像解析macOSアプリ。
 - レポート生成（Markdown or PDF形式）
 
 ## 技術スタック
-- 未決定（SwiftUI / Python+customtkinter を検討中）
+- **SwiftUI** (macOS 14+) — Swift Package Manager でビルド
+- ollama REST API (`http://localhost:11434/api/chat`) を `URLSession` async/await で呼び出し
+
+## アーキテクチャ
+```
+VLMAnalyzer/
+├── Package.swift
+└── Sources/VLMAnalyzer/
+    ├── VLMAnalyzerApp.swift   # @main エントリポイント
+    ├── AppViewModel.swift     # @Observable @MainActor 中央ViewModel
+    ├── Models/
+    │   └── ImageItem.swift    # 画像1件のデータモデル
+    ├── Services/
+    │   └── OllamaService.swift # actor: ollama REST API クライアント
+    └── Views/
+        ├── ContentView.swift   # メイン画面（共通プロンプト・グリッド・ツールバー）
+        ├── ImageCardView.swift # 画像カード（サムネイル・個別プロンプト・結果）
+        └── ReportView.swift    # レポートシート（Markdown 表示・保存）
+```
 
 ## ディレクトリ構成
 ```
 LocalVLM/
+├── VLMAnalyzer/  # SwiftUI macOS アプリ
 ├── docs/         # 仕様書・設計メモ
 ├── logs/         # 作業ログ・変更履歴
-└── src/          # ソースコード（実装後）
+└── vlm_demo.py   # Python CLI デモ
 ```
 
 ## 変更履歴
 | 日付 | 内容 |
 |------|------|
 | 2026-05-21 | 初版作成、要件定義 |
+| 2026-05-21 | SwiftUI実装完了、ビルド確認済み |

@@ -1,0 +1,5 @@
+.DS_Store
+VLMAnalyzer/.build/
+VLMAnalyzer/.swiftpm/
+*.o
+*.d

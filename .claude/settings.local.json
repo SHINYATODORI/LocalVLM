@@ -12,7 +12,8 @@
       "Bash(mkdir -p /Users/shinyatodori/Documents/LocalVLM/docs /Users/shinyatodori/Documents/LocalVLM/logs && ls /Users/shinyatodori/Documents/LocalVLM/)",
       "Bash(gh auth *)",
       "Bash(gh api *)",
-      "Bash(gh repo *)"
+      "Bash(gh repo *)",
+      "Bash(swift build *)"
     ]
   }
 }
