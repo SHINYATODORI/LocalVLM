@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ollama list *)",
+      "Bash(ollama pull *)",
+      "Bash(echo \"pulling in background, PID: $!\")",
+      "Bash(pip show *)",
+      "Bash(pip install *)",
+      "Bash(pip3 show *)",
+      "Bash(pip3 install *)",
+      "Bash(wait 31181)",
+      "Bash(mkdir -p /Users/shinyatodori/Documents/LocalVLM/docs /Users/shinyatodori/Documents/LocalVLM/logs && ls /Users/shinyatodori/Documents/LocalVLM/)",
+      "Bash(gh auth *)",
+      "Bash(gh api *)",
+      "Bash(gh repo *)"
+    ]
+  }
+}
