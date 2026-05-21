@@ -108,6 +108,7 @@ struct ContentView: View {
                 }
             }
             .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .onDrop(of: [.fileURL], isTargeted: $isDragOver, perform: handleDrop)
         .overlay(alignment: .bottom) {
