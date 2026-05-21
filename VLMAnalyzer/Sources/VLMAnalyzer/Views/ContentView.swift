@@ -34,90 +34,47 @@ struct ContentView: View {
         .onDisappear { memMonitor.stop() }
     }
 
-    // MARK: - Model picker (segmented pills)
+    // MARK: - Model picker (dropdown menu)
 
     private var modelPicker: some View {
-        let models = vm.vlModels.isEmpty ? vm.availableModels : vm.vlModels
-        let locked  = vm.isAnyAnalyzing || vm.isReleasingModel
-        return HStack(spacing: 2) {
+        @Bindable var vm = vm
+        let locked = vm.isAnyAnalyzing || vm.isReleasingModel
+        return HStack(spacing: 6) {
             if vm.isReleasingModel {
-                ProgressView().scaleEffect(0.6).frame(width: 14)
+                ProgressView().scaleEffect(0.65).frame(width: 14)
             } else {
                 Image(systemName: "cpu.fill")
                     .foregroundStyle(.secondary)
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
             }
-
-            if models.isEmpty {
-                Text(vm.selectedModel)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.secondary)
-            } else {
-                HStack(spacing: 1) {
-                    ForEach(models, id: \.self) { model in
-                        let isSelected = vm.selectedModel == model
-                        Button {
-                            Task { await vm.switchModel(to: model) }
-                        } label: {
-                            Text(shortName(model))
-                                .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
-                                .foregroundStyle(
-                                    locked && !isSelected
-                                        ? Color.secondary.opacity(0.4)
-                                        : isSelected ? .white : .primary
-                                )
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 5)
-                                        .fill(isSelected ? Color.accentColor : Color.clear)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(locked || isSelected)
-                        .help(locked ? "解析中はモデルを切り替えられません" : model)
-                    }
+            Picker("", selection: $vm.selectedModel) {
+                ForEach(vm.smallVlModels, id: \.self) { model in
+                    Text(model).tag(model)
                 }
-                .padding(2)
-                .background(
-                    RoundedRectangle(cornerRadius: 7)
-                        .fill(Color(.separatorColor).opacity(0.15))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 7)
-                                .stroke(Color(.separatorColor).opacity(locked ? 0.1 : 0.3), lineWidth: 1)
-                        )
-                )
-                .opacity(locked ? 0.6 : 1.0)
+            }
+            .pickerStyle(.menu)
+            .frame(width: 160)
+            .disabled(locked)
+            .opacity(locked ? 0.5 : 1.0)
+            .help(locked ? "解析中はモデルを切り替えられません" : "使用モデルを選択")
+            .onChange(of: vm.selectedModel) { old, new in
+                guard old != new else { return }
+                Task { await vm.switchModel(to: new) }
             }
         }
     }
 
-    /// "qwen3-vl:8b" → "Qwen3-VL 8B" のような短い表示名
-    private func shortName(_ model: String) -> String {
-        let base = model.components(separatedBy: ":").first ?? model
-        let tag  = model.components(separatedBy: ":").last ?? ""
-        // qwen2.5vl → Q2.5VL, qwen3-vl → Q3-VL etc.
-        let pretty = base
-            .replacingOccurrences(of: "qwen3-vl",  with: "Q3-VL",  options: .caseInsensitive)
-            .replacingOccurrences(of: "qwen2.5vl",  with: "Q2.5-VL", options: .caseInsensitive)
-            .replacingOccurrences(of: "qwen3",      with: "Q3",      options: .caseInsensitive)
-            .replacingOccurrences(of: "llava",       with: "LLaVA",   options: .caseInsensitive)
-        return tag.isEmpty ? pretty : "\(pretty) \(tag.uppercased())"
-    }
-
-    // MARK: - Common prompt bar (enlarged)
+    // MARK: - Common prompt bar (label above field)
 
     private func commonPromptBar(binding: Binding<String>) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        VStack(alignment: .leading, spacing: 5) {
             Label("共通プロンプト", systemImage: "text.bubble.fill")
-                .font(.system(size: 13).weight(.medium))
+                .font(.system(size: 12).weight(.medium))
                 .foregroundStyle(.secondary)
-                .fixedSize()
-                .padding(.top, 6)
 
             TextEditor(text: binding)
                 .font(.system(size: 14))
-                .frame(minHeight: 64, maxHeight: 120)
+                .frame(minHeight: 60, maxHeight: 120)
                 .scrollContentBackground(.hidden)
                 .background(Color(.textBackgroundColor))
                 .cornerRadius(7)
@@ -232,13 +189,13 @@ struct ContentView: View {
             .help("画像ファイルを追加")
         }
 
-        ToolbarItem(placement: .navigation) {
-            modelPicker
-        }
-
         ToolbarItemGroup(placement: .primaryAction) {
+            modelPicker
+
+            Divider()
+
             if vm.isAnalyzingAll {
-                ProgressView().scaleEffect(0.75).padding(.trailing, 4)
+                ProgressView().scaleEffect(0.75)
             }
 
             Button {

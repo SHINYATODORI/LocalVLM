@@ -22,25 +22,30 @@ final class AppViewModel {
 
     // MARK: - Model management
 
-    /// 視覚言語モデル（VL/vision）だけに絞ったリスト
+    /// VLモデル全リスト
     var vlModels: [String] {
         let keywords = ["vl", "vision", "llava", "moondream", "minicpm-v", "cogvlm", "internvl"]
         return availableModels.filter { model in
-            let lower = model.lowercased()
-            return keywords.contains(where: { lower.contains($0) })
+            keywords.contains(where: { model.lowercased().contains($0) })
+        }
+    }
+
+    /// 小型VLモデルのみ（32b等を除外）— プルダウンに表示する候補
+    var smallVlModels: [String] {
+        let exclude = ["32b", "30b", "27b", "20b", "14b", "13b"]
+        return vlModels.filter { model in
+            !exclude.contains(where: { model.lowercased().contains($0) })
         }
     }
 
     func loadModels() async {
         let models = await OllamaService.shared.fetchModels()
         availableModels = models
-        let candidates = models.filter { m in
-            let keywords = ["vl", "vision", "llava", "moondream", "minicpm-v", "cogvlm", "internvl"]
-            return keywords.contains(where: { m.lowercased().contains($0) })
-        }
-        let pool = candidates.isEmpty ? models : candidates
+        // smallVlModels優先、なければvlModels、なければ全体
+        let pool = smallVlModels.isEmpty ? (vlModels.isEmpty ? models : vlModels) : smallVlModels
         if !pool.isEmpty && !pool.contains(selectedModel) {
-            await switchModel(to: pool.first ?? selectedModel)
+            selectedModel = pool.first ?? selectedModel
+            await OllamaService.shared.setModel(selectedModel)
         }
     }
 
@@ -51,9 +56,9 @@ final class AppViewModel {
 
         isReleasingModel = true
         let old = selectedModel
+        selectedModel = newModel                       // Pickerのbindingを先に更新
         await OllamaService.shared.unloadModel(old)
         await OllamaService.shared.setModel(newModel)
-        selectedModel = newModel
         isReleasingModel = false
     }
 
