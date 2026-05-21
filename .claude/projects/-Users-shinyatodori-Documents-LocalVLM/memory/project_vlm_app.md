@@ -10,8 +10,8 @@ macOS向けVLM画像解析アプリを開発中。
 
 **GitHubリポジトリ:** https://github.com/SHINYATODORI/LocalVLM
 
-**現在使用モデル:** qwen2.5vl:32b（21GB）
-⚠️ PC不安定のため次回モデルサイズ要検討（qwen2.5vl:7bかllava:13bが候補）
+**現在使用モデル:** qwen3-vl:8b（6.1GB、GPT-4o相当、DocVQA 95.3%）
+- アプリ内ツールバーでモデル切替可能（ollama APIから自動取得）
 
 **実装済み機能:**
 - 複数画像読み込み（ドラッグ&ドロップ / ファイル選択）
@@ -22,6 +22,8 @@ macOS向けVLM画像解析アプリを開発中。
 - メモリグラフ（Swift Charts、2秒ポーリング、下部ステータスバー常駐）
 - HTMLレポート生成（写真base64埋め込み、WKWebView表示）
 - .appバンドル化（build_app.sh）
+- **ツールバーモデル選択ピッカー**（ollama APIから利用可能モデル自動取得）
+- **ollama同時起動制限**（LaunchAgent: OLLAMA_MAX_LOADED_MODELS=1 でフリーズ防止）
 
 **起動方法:**
 ```bash
@@ -30,6 +32,6 @@ bash build_app.sh && open "VLM Analyzer.app"
 ```
 
 **次回TODO:**
-- モデルをqwen2.5vl:7b or llava:13bに変更して動作確認
-- アプリUIのスクリーンショット確認（メモリグラフ表示位置）
-- 火山灰解析テストの実施
+- 火山灰解析テストの実施（qwen3-vl:8bで試す）
+- ファインチューニング用学習データ収集（火山灰画像＋スケール参照物）
+- MLX LoRA学習実行（finetune/ ディレクトリ準備済み）
