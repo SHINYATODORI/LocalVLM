@@ -17,7 +17,13 @@
       "Bash(ls /Users/shinyatodori/Documents/RYO-SYU-SYO/ 2>/dev/null)",
       "Bash(chmod +x build_app.sh)",
       "Bash(bash build_app.sh)",
-      "Bash(open \"VLM Analyzer.app\")"
+      "Bash(open \"VLM Analyzer.app\")",
+      "Bash(screencapture -x /tmp/vlm_app_screenshot.png)",
+      "Bash(osascript -e 'tell application \"VLM Analyzer\" to activate')",
+      "Bash(screencapture -x /tmp/vlm_app3.png)",
+      "Bash(osascript -e ' *)",
+      "Bash(screencapture -x /tmp/vlm_app4.png)",
+      "Bash(screencapture -x /tmp/vlm_full.png)"
     ]
   }
 }
