@@ -90,11 +90,38 @@ struct ImageCardView: View {
                     }
                 }
 
+            // 期待値入力
+            VStack(alignment: .leading, spacing: 4) {
+                Label("期待値", systemImage: "checkmark.seal")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                TextEditor(text: $item.expectedValue)
+                    .font(.system(size: 13))
+                    .frame(minHeight: 40, maxHeight: 80)
+                    .scrollContentBackground(.hidden)
+                    .background(Color(.textBackgroundColor))
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.orange.opacity(0.4), lineWidth: 1)
+                    )
+                    .overlay(alignment: .topLeading) {
+                        if item.expectedValue.isEmpty {
+                            Text("正解・期待する出力を入力…")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.tertiary)
+                                .padding(.top, 5)
+                                .padding(.leading, 5)
+                                .allowsHitTesting(false)
+                        }
+                    }
+            }
+
             Button {
                 Task { await vm.analyzeImage(item) }
             } label: {
                 Label(item.isAnalyzing ? "解析中…" : "解析", systemImage: "play.fill")
-                    .font(.system(size: 14))   // +2pt
+                    .font(.system(size: 14))
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -102,6 +129,10 @@ struct ImageCardView: View {
 
             if !item.result.isEmpty {
                 Divider()
+                // 期待値がある場合は一致判定バッジを表示
+                if !item.expectedValue.isEmpty {
+                    matchBadge
+                }
                 resultView
             }
 
@@ -112,6 +143,26 @@ struct ImageCardView: View {
             }
         }
         .padding(12)
+    }
+
+    // MARK: - Match badge
+
+    private var matchBadge: some View {
+        let resultLower   = item.result.lowercased()
+        let expectedLower = item.expectedValue.lowercased()
+        let matched = resultLower.contains(expectedLower) || expectedLower.contains(resultLower)
+        return HStack(spacing: 6) {
+            Image(systemName: matched ? "checkmark.circle.fill" : "xmark.circle.fill")
+            Text(matched ? "期待値と一致" : "期待値と不一致")
+                .font(.system(size: 12, weight: .semibold))
+        }
+        .foregroundStyle(matched ? Color.green : Color.red)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(matched ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
+        )
     }
 
     // MARK: - Result

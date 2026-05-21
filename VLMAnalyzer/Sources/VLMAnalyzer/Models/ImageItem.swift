@@ -6,6 +6,7 @@ final class ImageItem: Identifiable, @unchecked Sendable {
     let id = UUID()
     let url: URL
     var individualPrompt: String = ""
+    var expectedValue: String = ""   // 期待値
     var result: String = ""
     var error: String? = nil
     var isAnalyzing: Bool = false

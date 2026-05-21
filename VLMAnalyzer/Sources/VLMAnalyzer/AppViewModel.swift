@@ -142,20 +142,21 @@ final class AppViewModel {
         isAnalyzingAll = false
     }
 
-    // MARK: - HTML Report
+    // MARK: - HTML Evaluation Report
 
     func generateHTMLReport() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy年MM月dd日 HH:mm:ss"
         let dateStr = formatter.string(from: Date())
 
-        let completed = images.filter { !$0.result.isEmpty }.count
-        let errors    = images.filter { $0.error != nil }.count
+        let completed  = images.filter { !$0.result.isEmpty }.count
+        let _          = images.filter { $0.error != nil }.count
+        let evaluated  = images.filter { !$0.expectedValue.isEmpty && !$0.result.isEmpty }
+        let matchCount = evaluated.filter { isMatch(result: $0.result, expected: $0.expectedValue) }.count
+        let accuracy   = evaluated.isEmpty ? "-" : "\(Int(Double(matchCount) / Double(evaluated.count) * 100))%"
 
         var cards = ""
         for (i, item) in images.enumerated() {
-            let prompt = combined(common: commonPrompt, individual: item.individualPrompt)
-
             let imgTag: String
             if let b64 = imageBase64(url: item.url) {
                 imgTag = "<img src=\"data:image/jpeg;base64,\(b64)\" class=\"photo\">"
@@ -163,16 +164,52 @@ final class AppViewModel {
                 imgTag = "<div class=\"no-photo\">画像を読み込めませんでした</div>"
             }
 
+            // 評価判定
+            let hasExpected = !item.expectedValue.isEmpty
+            let hasResult   = !item.result.isEmpty
+            let matched     = hasExpected && hasResult && isMatch(result: item.result, expected: item.expectedValue)
+
             let statusClass: String
             let statusLabel: String
-            if item.isAnalyzing        { statusClass = "analyzing"; statusLabel = "解析中" }
-            else if item.error != nil  { statusClass = "error";     statusLabel = "エラー" }
-            else if !item.result.isEmpty { statusClass = "done";    statusLabel = "完了" }
-            else                       { statusClass = "pending";   statusLabel = "未解析" }
+            if item.isAnalyzing          { statusClass = "analyzing"; statusLabel = "解析中" }
+            else if item.error != nil    { statusClass = "error";     statusLabel = "エラー" }
+            else if hasExpected && hasResult {
+                statusClass = matched ? "match" : "mismatch"
+                statusLabel = matched ? "✅ 一致" : "❌ 不一致"
+            }
+            else if hasResult            { statusClass = "done";     statusLabel = "解析済" }
+            else                         { statusClass = "pending";  statusLabel = "未解析" }
 
-            let resultHTML = item.result.isEmpty
-                ? "<span class=\"empty\">未解析</span>"
-                : "<p>\(htmlEscape(item.result).replacingOccurrences(of: "\n", with: "<br>"))</p>"
+            // 比較テーブル
+            let comparisonHTML: String
+            if hasResult {
+                let expectedCell = hasExpected
+                    ? htmlEscape(item.expectedValue).replacingOccurrences(of: "\n", with: "<br>")
+                    : "<em class=\"empty\">期待値なし</em>"
+                let matchRow = hasExpected ? """
+                  <tr>
+                    <th>判定</th>
+                    <td colspan="2">
+                      <span class="verdict \(matched ? "match" : "mismatch")">
+                        \(matched ? "✅ 一致 — 期待値と合致しています" : "❌ 不一致 — 期待値と異なります")
+                      </span>
+                    </td>
+                  </tr>
+                """ : ""
+                comparisonHTML = """
+                <table class="cmp-table">
+                  <tr>
+                    <th style="width:80px">期待値</th>
+                    <td class="expected">\(expectedCell)</td>
+                    <th style="width:80px">解析結果</th>
+                    <td class="result-cell">\(htmlEscape(item.result).replacingOccurrences(of: "\n", with: "<br>"))</td>
+                  </tr>
+                  \(matchRow)
+                </table>
+                """
+            } else {
+                comparisonHTML = "<span class=\"empty\">未解析</span>"
+            }
 
             let errorHTML = item.error.map {
                 "<div class=\"error-msg\">⚠️ \(htmlEscape($0))</div>"
@@ -185,21 +222,12 @@ final class AppViewModel {
                 <span class="fname">\(htmlEscape(item.fileName))</span>
                 <span class="badge \(statusClass)">\(statusLabel)</span>
               </div>
-              <div class="photo-wrap">\(imgTag)</div>
-              <div class="card-body">
-                <div class="field">
-                  <div class="field-label">個別プロンプト</div>
-                  <div class="field-val">\(item.individualPrompt.isEmpty ? "<em>（なし）</em>" : htmlEscape(item.individualPrompt))</div>
+              <div class="card-layout">
+                <div class="photo-col">\(imgTag)</div>
+                <div class="eval-col">
+                  \(comparisonHTML)
+                  \(errorHTML)
                 </div>
-                <div class="field">
-                  <div class="field-label">送信プロンプト（共通＋個別）</div>
-                  <div class="field-val combined">\(prompt.isEmpty ? "<em>（なし）</em>" : htmlEscape(prompt).replacingOccurrences(of: "\n", with: "<br>"))</div>
-                </div>
-                <div class="field">
-                  <div class="field-label">解析結果</div>
-                  <div class="result">\(resultHTML)</div>
-                </div>
-                \(errorHTML)
               </div>
             </div>
             """
@@ -210,67 +238,75 @@ final class AppViewModel {
         <html lang="ja">
         <head>
         <meta charset="UTF-8">
-        <title>VLM Analysis Report</title>
+        <title>VLM Evaluation Report</title>
         <style>
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f7;color:#1d1d1f;padding:28px}
-        .rpt-header{background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);color:#fff;padding:28px 32px;border-radius:16px;margin-bottom:24px}
-        .rpt-header h1{font-size:24px;font-weight:700;margin-bottom:10px;letter-spacing:-0.3px}
+        .rpt-header{background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);color:#fff;padding:28px 32px;border-radius:16px;margin-bottom:24px}
+        .rpt-header h1{font-size:24px;font-weight:700;margin-bottom:10px}
         .rpt-header .meta{font-size:13px;opacity:.8;line-height:2}
         .summary{display:flex;gap:12px;margin-bottom:24px}
         .sum-item{flex:1;background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 1px 5px rgba(0,0,0,.08)}
         .sum-item .lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
         .sum-item .val{font-size:26px;font-weight:700}
-        .common-box{background:#fff;border-radius:12px;padding:18px 22px;margin-bottom:24px;box-shadow:0 1px 5px rgba(0,0,0,.08);border-left:4px solid #0066cc}
-        .common-box .lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
-        .common-box p{font-size:14px;line-height:1.7}
-        .card{background:#fff;border-radius:16px;margin-bottom:28px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.10)}
-        .card-header{display:flex;align-items:center;gap:10px;padding:14px 20px;background:#f8f8fa;border-bottom:1px solid #ebebed}
-        .idx{background:#0066cc;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+        .card{background:#fff;border-radius:16px;margin-bottom:24px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.10)}
+        .card-header{display:flex;align-items:center;gap:10px;padding:12px 18px;background:#f8f8fa;border-bottom:1px solid #ebebed}
+        .idx{background:#0066cc;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
         .fname{font-size:14px;font-weight:600;flex:1;word-break:break-all}
-        .badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600}
-        .badge.done{background:#d4edda;color:#155724}
-        .badge.analyzing{background:#cce5ff;color:#004085}
+        .badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;white-space:nowrap}
+        .badge.match{background:#d4edda;color:#155724}
+        .badge.mismatch{background:#f8d7da;color:#721c24}
+        .badge.done{background:#cce5ff;color:#004085}
+        .badge.analyzing{background:#fff3cd;color:#856404}
         .badge.error{background:#f8d7da;color:#721c24}
         .badge.pending{background:#e2e3e5;color:#383d41}
-        .photo-wrap{line-height:0}
-        .photo{width:100%;max-height:480px;object-fit:cover;display:block}
-        .no-photo{padding:40px;text-align:center;color:#aaa;background:#fafafa;font-size:13px}
-        .card-body{padding:22px}
-        .field{margin-bottom:18px}
-        .field:last-child{margin-bottom:0}
-        .field-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;font-weight:600}
-        .field-val{font-size:13px;color:#444;background:#f8f9fa;padding:10px 14px;border-radius:8px;line-height:1.7}
-        .field-val.combined{border-left:3px solid #0066cc}
-        .result{font-size:14px;line-height:1.9;color:#1d1d1f;background:#f0f7ff;padding:16px 20px;border-radius:8px;border-left:3px solid #0066cc}
-        .result p{margin-bottom:8px}.result p:last-child{margin-bottom:0}
+        .card-layout{display:flex;gap:0}
+        .photo-col{width:280px;flex-shrink:0;line-height:0}
+        .photo{width:100%;height:100%;object-fit:cover;display:block;min-height:160px;max-height:320px}
+        .no-photo{width:280px;padding:40px 20px;text-align:center;color:#aaa;background:#fafafa;font-size:13px}
+        .eval-col{flex:1;padding:18px 20px;display:flex;flex-direction:column;justify-content:flex-start;gap:12px}
+        .cmp-table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.7}
+        .cmp-table th{width:72px;padding:10px 12px;background:#f0f0f5;color:#555;font-weight:600;vertical-align:top;border:1px solid #e0e0e8;text-align:left;white-space:nowrap}
+        .cmp-table td{padding:10px 14px;vertical-align:top;border:1px solid #e0e0e8}
+        .cmp-table td.expected{background:#fffbf0;border-left:3px solid #f0a500}
+        .cmp-table td.result-cell{background:#f0f7ff;border-left:3px solid #0066cc}
+        .verdict{display:inline-block;padding:6px 14px;border-radius:8px;font-weight:600;font-size:13px}
+        .verdict.match{background:#d4edda;color:#155724}
+        .verdict.mismatch{background:#f8d7da;color:#721c24}
         .empty{color:#bbb;font-style:italic}
-        .error-msg{font-size:13px;color:#c00;background:#fff5f5;padding:10px 14px;border-radius:8px;margin-top:12px}
+        .error-msg{font-size:13px;color:#c00;background:#fff5f5;padding:10px 14px;border-radius:8px}
         .footer{text-align:center;color:#bbb;font-size:12px;padding:20px}
         </style>
         </head>
         <body>
         <div class="rpt-header">
-          <h1>📊 VLM Analysis Report</h1>
+          <h1>🔬 VLM Evaluation Report</h1>
           <div class="meta">
             生成日時：\(dateStr)<br>
             使用モデル：\(selectedModel) (ollama / ローカル)<br>
             共通プロンプト：\(commonPrompt.isEmpty ? "（なし）" : htmlEscape(commonPrompt))
           </div>
         </div>
-
         <div class="summary">
           <div class="sum-item"><div class="lbl">総画像数</div><div class="val">\(images.count)</div></div>
-          <div class="sum-item"><div class="lbl">解析完了</div><div class="val" style="color:#28a745">\(completed)</div></div>
-          <div class="sum-item"><div class="lbl">未解析</div><div class="val" style="color:#888">\(images.count - completed - errors)</div></div>
-          <div class="sum-item"><div class="lbl">エラー</div><div class="val" style="color:\(errors > 0 ? "#dc3545" : "#ccc")">\(errors)</div></div>
+          <div class="sum-item"><div class="lbl">解析完了</div><div class="val" style="color:#0066cc">\(completed)</div></div>
+          <div class="sum-item"><div class="lbl">一致</div><div class="val" style="color:#28a745">\(matchCount)</div></div>
+          <div class="sum-item"><div class="lbl">不一致</div><div class="val" style="color:#dc3545">\(evaluated.count - matchCount)</div></div>
+          <div class="sum-item"><div class="lbl">正解率</div><div class="val" style="color:\(accuracy == "-" ? "#ccc" : (matchCount == evaluated.count && !evaluated.isEmpty) ? "#28a745" : "#e67e00")">\(accuracy)</div></div>
         </div>
-
         \(cards)
         <div class="footer">Generated by VLM Analyzer — \(selectedModel) via ollama</div>
         </body>
         </html>
         """
+    }
+
+    /// 期待値と解析結果の一致判定（部分一致）
+    private func isMatch(result: String, expected: String) -> Bool {
+        let r = result.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let e = expected.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !e.isEmpty else { return false }
+        return r.contains(e) || e.contains(r)
     }
 
     // MARK: - Helpers
